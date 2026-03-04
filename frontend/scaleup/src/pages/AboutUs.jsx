@@ -117,7 +117,7 @@ const AboutUs = () => {
       {/* ═══════════════════════════════════════
           MISSION & VISION
          ═══════════════════════════════════════ */}
-      <section className="px-6 lg:px-16 py-16 md:py-24">
+      <section className="px-6 lg:px-16 md:py-24">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-12 md:gap-16">
 
           {/* ── Left column: Mission (top) + Vision (bottom) ── */}
@@ -171,7 +171,7 @@ const AboutUs = () => {
       {/* ═══════════════════════════════════════
           OUR VALUES SECTION
          ═══════════════════════════════════════ */}
-      <section className="bg-[#193A84] px-6 lg:px-16 py-8 md:py-24 mb-5 md:mb-0 md:mx-6 lg:mx-12 md:rounded-[20px]">
+      <section className="bg-[#193A84] px-6 lg:px-16 py-8 md:py-24 mb-15 md:mb-15 md:mx-8 lg:mx-15 md:rounded-[20px]">
         <div className="max-w-6xl mx-auto">
           {/* Heading */}
           <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-4">

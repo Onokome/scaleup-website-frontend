@@ -72,35 +72,35 @@ const Navbar = ({ mobileOnly = false }) => {
         </button>
       </nav>
 
-      {/* Mobile dropdown menu */}
+      {/* Mobile drawer — slides in from right, content-height only */}
+      {/* Backdrop */}
       {mobileMenuOpen && (
-        <div className="bg-[#193A84] px-6 pb-4 flex flex-col gap-3 md:hidden font-[Poppins]">
-          <Link
-            to="/"
-            className="text-white/80 text-sm hover:text-white"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Home
-          </Link>
-          <Link
-            to="/about"
-            className="text-white/80 text-sm hover:text-white"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            About Us
-          </Link>
-          <Link
-            to="/products"
-            className="text-white/80 text-sm hover:text-white"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Products
-          </Link>
-          <a href="/#contact" className="text-white/80 text-sm hover:text-white">
-            Contact Us
-          </a>
-        </div>
+        <div
+          className="fixed inset-0 z-[55] bg-black/30 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
+      {/* Drawer panel */}
+      <div
+        className={`fixed top-0 right-0 z-[70] h-fit w-64 bg-white shadow-2xl rounded-bl-2xl flex flex-col gap-1 px-6 py-6 md:hidden font-[Poppins] transition-transform duration-300 ease-out ${
+          mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Close button */}
+        <button
+          onClick={() => setMobileMenuOpen(false)}
+          className="self-end text-[#193A84] mb-4"
+          aria-label="Close menu"
+        >
+          <X size={22} />
+        </button>
+
+        <Link to="/" className="text-[#193A84] text-sm font-medium py-2 border-b border-gray-100 hover:text-[#142e6b] transition-colors" onClick={() => setMobileMenuOpen(false)}>Home</Link>
+        <Link to="/about" className="text-[#193A84] text-sm font-medium py-2 border-b border-gray-100 hover:text-[#142e6b] transition-colors" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
+        <Link to="/products" className="text-[#193A84] text-sm font-medium py-2 border-b border-gray-100 hover:text-[#142e6b] transition-colors" onClick={() => setMobileMenuOpen(false)}>Products</Link>
+        <a href="/#contact" className="text-[#193A84] text-sm font-medium py-2 border-b border-gray-100 hover:text-[#142e6b] transition-colors" onClick={() => setMobileMenuOpen(false)}>Contact Us</a>
+        <Link to="/join-us" className="text-[#193A84] text-sm font-medium py-2 hover:text-[#142e6b] transition-colors" onClick={() => setMobileMenuOpen(false)}>Join Us</Link>
+      </div>
     </>
   );
 };
