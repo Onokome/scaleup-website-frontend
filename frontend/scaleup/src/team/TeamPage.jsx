@@ -9,6 +9,8 @@ import haulat from "../assets/images/haulat.jpg";
 import james from "../assets/images/james.jpg";
 import tiolu from "../assets/images/tiolu.jpg";
 import TeamCard from "./TeamCard";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 const teamMembers = [
   {
@@ -78,12 +80,13 @@ const teamMembers = [
 
 export default function TeamPage() {
   return (
-    <>
+    <div className="min-h-screen flex flex-col font-[Poppins]">
+      <Navbar />
       <header
-        className="relative w-full h-[250px] md:h-[300px] flex items-center justify-center overflow-hidden bg-cover bg-center"
+        className="relative w-full h-[320px] md:h-[420px] lg:h-[480px] flex items-center justify-center overflow-hidden bg-cover bg-center"
         style={{ backgroundImage: `url(${teamBg})` }}
       >
-        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="absolute inset-0 bg-black/50"></div>
         <div className="relative z-10 text-center px-4">
           <h1 className="font-bold text-primary text-4xl lg:text-6xl mb-2">
             Our Team
@@ -93,7 +96,7 @@ export default function TeamPage() {
           </p>
         </div>
       </header>
-      <main className="p-4">
+      <main className="p-4 flex-1">
         <section className="flex flex-wrap justify-center">
           {teamMembers.map((member, index) => (
             <TeamCard
@@ -106,6 +109,7 @@ export default function TeamPage() {
           ))}
         </section>
       </main>
-    </>
+      <Footer />
+    </div>
   );
 }

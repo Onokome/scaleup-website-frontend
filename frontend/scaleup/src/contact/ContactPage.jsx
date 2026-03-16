@@ -3,6 +3,19 @@ import contactBg from "../assets/images/comtact.jpg";
 import emailIcon from "../assets/icons/EnvelopeSimple.svg";
 import globeIcon from "../assets/icons/GlobeHemisphereEast.svg";
 import phoneIcon from "../assets/icons/PhoneOutgoing.svg";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import { post } from "../utils/api";
+
+const errorMessage = (err) => {
+  if (err.status === 0)
+    return "Unable to reach our servers. Please check your internet connection and try again.";
+  if (err.status >= 500)
+    return "Our server encountered an issue. Please try again in a moment.";
+  if (err.status === 404)
+    return "This service is temporarily unavailable. Please try again later.";
+  return "Something went wrong. Please try again.";
+};
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -37,29 +50,30 @@ const ContactPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Simulate successful submission
-      console.log("Form submitted:", formData);
+      const result = await post("/api/contact", formData);
+      console.log("Form submitted:", result);
+      // Reset form fields
+      setFormData({ name: "", email: "", subject: "General Inquiry", message: "" });
       setIsSubmitted(true);
 
-      // Reset success message after 5 seconds
+      // Reset success message after 3 seconds
       setTimeout(() => {
         setIsSubmitted(false);
       }, 3000);
     } catch (err) {
-      setError("Something went wrong. Please try again.", err);
+      console.error(err);
+      setError(errorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col font-[Poppins]">
+      <Navbar />
       <header
-        className="relative w-full h-[250px] md:h-[300px] flex items-center justify-center overflow-hidden bg-cover bg-center"
+        className="relative w-full h-[320px] md:h-[420px] lg:h-[480px] flex items-center justify-center overflow-hidden bg-cover bg-center"
         style={{ backgroundImage: `url(${contactBg})` }}
       >
         <div className="absolute inset-0 bg-black/50"></div>
@@ -69,9 +83,10 @@ const ContactPage = () => {
           </h1>
         </div>
       </header>
-      <main className="p-4">
-        {/* Main Content */}
-        <section className="pb-10 pt-2 md:pt-4">
+      <section className="relative z-10 -mt-10 md:-mt-14 bg-white rounded-t-[20px] py-16 md:px-6 lg:px-16 md:py-24">
+        <div className="max-w-6xl mx-auto px-4">
+          {/* Main Content */}
+          <section className="pb-10 pt-2 md:pt-4">
           {/* Success Message */}
           {isSubmitted && (
             <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 text-center animate-fadeIn">
@@ -82,12 +97,7 @@ const ContactPage = () => {
             </div>
           )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-              <p className="text-red-700 font-medium">❌ {error}</p>
-            </div>
-          )}
+          {/* Error message moved below submit button for better UX */}
 
           {/* Contact Grid - stacks on mobile, side by side on desktop */}
           <div className="grid md:grid-cols-2 gap-4 md:gap-6">
@@ -257,12 +267,27 @@ const ContactPage = () => {
                 >
                   {isSubmitting ? "Sending..." : "Submit"}
                 </button>
+                {/* Inline Success (below submit) */}
+                {isSubmitted && (
+                  <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                    <p className="text-green-700 font-medium text-sm">✅ Thank you! Your message has been sent. We'll respond within 24 hours.</p>
+                  </div>
+                )}
+
+                {/* Inline Error (below submit) */}
+                {error && (
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                    <p className="text-red-700 font-medium text-sm">❌ {error}</p>
+                  </div>
+                )}
               </form>
             </div>
           </div>
-        </section>
-      </main>
-    </>
+          </section>
+        </div>
+      </section>
+      <Footer />
+    </div>
   );
 };
 

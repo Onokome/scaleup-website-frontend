@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { Users, Eye, Handshake, CheckCircle, TrendingUp, Shield, Lightbulb } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import heroImg from "../assets/Subtract.png";
+import heroImg from "../assets/images/comtact.jpg";
 import aboutImg from "../assets/Rectangle 5.png";
-import missionImg from "../assets/Subtract.png";
+import missionImg from "../assets/images/comtact.jpg";
 
 /* ──────────────────────────────────────────────
    Values data
@@ -49,13 +49,10 @@ const AboutUs = () => {
       {/* ═══════════════════════════════════════
           HERO BANNER
          ═══════════════════════════════════════ */}
-      <section className="relative w-full h-[320px] md:h-[420px] lg:h-[480px] overflow-hidden">
-        {/* Background image */}
-        <img
-          src={heroImg}
-          alt="ScaleUp team collaborating"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+      <section
+        className="relative w-full h-[320px] md:h-[420px] lg:h-[480px] overflow-hidden bg-cover bg-center"
+        style={{ backgroundImage: `url(${heroImg})` }}
+      >
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/50" />
         {/* Centered text */}
@@ -117,7 +114,7 @@ const AboutUs = () => {
       {/* ═══════════════════════════════════════
           MISSION & VISION
          ═══════════════════════════════════════ */}
-      <section className="px-6 lg:px-16 md:py-24">
+      <section className="px-6 lg:px-16 md:py-10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-12 md:gap-16">
 
           {/* ── Left column: Mission (top) + Vision (bottom) ── */}
@@ -157,11 +154,11 @@ const AboutUs = () => {
           </div>
 
           {/* ── Right column: image — desktop only ── */}
-          <div className="hidden md:flex flex-1 self-stretch">
+          <div className="hidden md:flex flex-1 items-start">
             <img
               src={missionImg}
               alt="Team in collaborative meeting"
-              className="w-full h-full object-cover rounded-2xl shadow-lg"
+              className="w-full h-auto max-h-[520px] object-cover rounded-2xl shadow-lg"
             />
           </div>
 
