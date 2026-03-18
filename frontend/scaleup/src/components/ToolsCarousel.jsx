@@ -1,9 +1,15 @@
+import githubIcon from '../assets/github.png'
+import slackIcon from '../assets/slack.png'
+import figmaIcon from '../assets/figma.png'
+import googleIcon from '../assets/google.png'
+import notionIcon from '../assets/notion.png'
+
 const tools = [
-  { name: "GitHub", img: "/src/assets/github.png", url: "https://github.com" },
-  { name: "Slack", img: "/src/assets/slack.png", url: "https://slack.com" },
-  { name: "Figma", img: "/src/assets/figma.png", url: "https://figma.com" },
-  { name: "Google", img: "/src/assets/google.png", url: "https://google.com" },
-  { name: "Notion", img: "/src/assets/notion.png", url: "https://notion.so" },
+  { name: "GitHub", img: githubIcon, url: "https://github.com" },
+  { name: "Slack", img: slackIcon, url: "https://slack.com" },
+  { name: "Figma", img: figmaIcon, url: "https://figma.com" },
+  { name: "Google", img: googleIcon, url: "https://google.com" },
+  { name: "Notion", img: notionIcon, url: "https://notion.so" },
 ];
 
 const ToolsCarousel = () => {
