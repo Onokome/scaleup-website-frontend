@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDown, X, User, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
@@ -17,14 +17,203 @@ const errorMessage = (err) => {
   return "Something went wrong. Please try again.";
 };
 
+const fieldLabels = {
+  firstName: "First name",
+  lastName: "Last name",
+  email: "Email",
+  phone: "Phone number",
+  location: "Location",
+  linkedin: "LinkedIn",
+  availability: "Availability",
+  whyVolunteer: "Why you want to volunteer",
+  experience: "Relevant experience",
+  skills: "Volunteer skills",
+};
+
+const fieldKeyMap = {
+  first_name: "firstName",
+  firstname: "firstName",
+  firstName: "firstName",
+  last_name: "lastName",
+  lastname: "lastName",
+  lastName: "lastName",
+  email: "email",
+  phone: "phone",
+  phone_number: "phone",
+  phoneNumber: "phone",
+  location: "location",
+  linkedin: "linkedin",
+  linked_in: "linkedin",
+  linkedIn: "linkedin",
+  availability: "availability",
+  why_volunteer: "whyVolunteer",
+  whyVolunteer: "whyVolunteer",
+  relevant_experience: "experience",
+  relevantExperience: "experience",
+  experience: "experience",
+  skills: "skills",
+  cv: "cv",
+};
+
+const getNormalizedFieldKey = (key = "") => {
+  if (!key) return null;
+  return fieldKeyMap[key] || fieldKeyMap[key.toLowerCase()] || null;
+};
+
+const getAvailabilityError = (value = "") => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^\d+$/.test(trimmed)) {
+    return "Availability must be a whole number between 1 and 40 hours.";
+  }
+
+  const availabilityNumber = Number(trimmed);
+  if (availabilityNumber < 1 || availabilityNumber > 40) {
+    return "Availability must be between 1 and 40 hours.";
+  }
+
+  return null;
+};
+
+const getEmailError = (value = "") => {
+  const trimmed = value.trim();
+  if (!trimmed) return "Email is required.";
+  if (!/^\S+@\S+\.\S+$/.test(trimmed)) return "Enter a valid email address.";
+  return null;
+};
+
+const commonEmailDomainTypos = {
+  "gnail.com": "gmail.com",
+  "gmai.com": "gmail.com",
+  "gmail.co": "gmail.com",
+  "gmal.com": "gmail.com",
+  "hotnail.com": "hotmail.com",
+  "hotmai.com": "hotmail.com",
+  "outlok.com": "outlook.com",
+  "outllok.com": "outlook.com",
+  "yaho.com": "yahoo.com",
+  "yhoo.com": "yahoo.com",
+};
+
+const getEmailDomainSuggestion = (value = "") => {
+  const trimmed = value.trim().toLowerCase();
+  const parts = trimmed.split("@");
+  if (parts.length !== 2) return null;
+
+  const [localPart, domain] = parts;
+  if (!localPart || !domain) return null;
+
+  const correctedDomain = commonEmailDomainTypos[domain];
+  if (!correctedDomain) return null;
+
+  return `${localPart}@${correctedDomain}`;
+};
+
+const validateForm = (formData, selectedSkills) => {
+  const errors = {};
+  const requiredFields = [
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "location",
+    "linkedin",
+    "availability",
+    "whyVolunteer",
+    "experience",
+  ];
+
+  requiredFields.forEach((field) => {
+    if (!formData[field]?.trim()) {
+      errors[field] = `${fieldLabels[field]} is required.`;
+    }
+  });
+
+  if (selectedSkills.length === 0) {
+    errors.skills = "Select at least one volunteer skill.";
+  }
+
+  const emailError = getEmailError(formData.email);
+  if (emailError) {
+    errors.email = emailError;
+  }
+
+  const linkedInValue = formData.linkedin.trim();
+  if (linkedInValue && !/^https?:\/\//i.test(linkedInValue)) {
+    errors.linkedin = "LinkedIn link must start with http:// or https://.";
+  }
+
+  const cvValue = formData.cv.trim();
+  if (cvValue && !/^https?:\/\//i.test(cvValue)) {
+    errors.cv = "CV link must start with http:// or https://.";
+  }
+
+  const availabilityError = getAvailabilityError(formData.availability);
+  if (availabilityError) {
+    errors.availability = availabilityError;
+  }
+
+  return errors;
+};
+
+const parseApiValidationErrors = (body) => {
+  const errors = {};
+  if (!body) return errors;
+
+  const assignError = (incomingKey, incomingMessage) => {
+    const field = getNormalizedFieldKey(incomingKey);
+    if (field && incomingMessage && !errors[field]) {
+      errors[field] = incomingMessage;
+    }
+  };
+
+  if (Array.isArray(body.errors)) {
+    body.errors.forEach((entry) => {
+      if (typeof entry === "string") return;
+      const key = entry.field || entry.path || entry.param || entry.key || "";
+      const message = entry.message || entry.msg || entry.error || "";
+      assignError(key, message);
+    });
+  }
+
+  if (body.errors && typeof body.errors === "object" && !Array.isArray(body.errors)) {
+    Object.entries(body.errors).forEach(([key, value]) => {
+      const message = Array.isArray(value) ? value[0] : value;
+      assignError(key, typeof message === "string" ? message : "Invalid value.");
+    });
+  }
+
+  if (body.fieldErrors && typeof body.fieldErrors === "object") {
+    Object.entries(body.fieldErrors).forEach(([key, value]) => {
+      const message = Array.isArray(value) ? value[0] : value;
+      assignError(key, typeof message === "string" ? message : "Invalid value.");
+    });
+  }
+
+  return errors;
+};
+
+const getSubmitErrorMessage = (err) => {
+  if (err.status === 400 || err.status === 422) {
+    return "Please fix the highlighted fields and submit again.";
+  }
+  if (err.status === 409) {
+    return "An application with this email already exists.";
+  }
+  if (err.status === 401 || err.status === 403) {
+    return "You are not authorized to submit this application right now.";
+  }
+  return errorMessage(err);
+};
+
 const skillOptions = [
-  "Software engineering",
   "UI/UX Design",
   "Operations/Product management",
   "Marketing and media",
-  "Data Science",
-  "DevOps",
-  "Content Writing",
+  "Software engineering",
+  "Content creation",
+  "Quality Assurance",
+  "Event outreach/ Lead generations",
 ];
 
 const ApplicationDetails = () => {
@@ -45,18 +234,118 @@ const ApplicationDetails = () => {
 
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [skillsOpen, setSkillsOpen] = useState(false);
+  const skillsListRef = useRef(null);
+  const skillsToggleRef = useRef(null);
+  const [skillsScrollable, setSkillsScrollable] = useState(false);
+  const [showScrollHint, setShowScrollHint] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [emailSuggestion, setEmailSuggestion] = useState(null);
+  const isSubmittingRef = useRef(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const nextValue = value;
+    setFormData({ ...formData, [name]: nextValue });
+
+    if (name === "email") {
+      setEmailSuggestion(null);
+    }
+
+    setFieldErrors((prev) => {
+      if (name === "availability") {
+        const next = { ...prev };
+        const availabilityError = getAvailabilityError(nextValue);
+        if (availabilityError) {
+          next.availability = availabilityError;
+        } else {
+          delete next.availability;
+        }
+        return next;
+      }
+
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const checkScrollable = () => {
+      const el = skillsListRef.current;
+      if (!el) return;
+      const scrollable = el.scrollHeight > el.clientHeight + 1;
+      setSkillsScrollable(scrollable);
+      if (scrollable) {
+        // show hint only if not scrolled to bottom
+        const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+        setShowScrollHint(!atBottom);
+      } else {
+        setShowScrollHint(false);
+      }
+    };
+
+    if (skillsOpen) {
+      // check on next tick when dropdown is rendered
+      setTimeout(checkScrollable, 0);
+      window.addEventListener("resize", checkScrollable);
+    }
+
+    return () => window.removeEventListener("resize", checkScrollable);
+  }, [skillsOpen]);
+
+  useEffect(() => {
+    if (!skillsOpen) return;
+
+    const onDocMouse = (e) => {
+      const toggleEl = skillsToggleRef.current;
+      const listEl = skillsListRef.current;
+      const target = e.target;
+      if (toggleEl && toggleEl.contains(target)) return;
+      if (listEl && listEl.contains(target)) return;
+      setSkillsOpen(false);
+    };
+
+    document.addEventListener("mousedown", onDocMouse);
+    return () => document.removeEventListener("mousedown", onDocMouse);
+  }, [skillsOpen]);
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+
+    if (name !== "email") return;
+
+    const emailError = getEmailError(value);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (emailError) {
+        next.email = emailError;
+      } else {
+        delete next.email;
+      }
+      return next;
+    });
+
+    if (!emailError) {
+      setEmailSuggestion(getEmailDomainSuggestion(value));
+    } else {
+      setEmailSuggestion(null);
+    }
   };
 
   const toggleSkill = (skill) => {
     setSelectedSkills((prev) =>
       prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
     );
+    setFieldErrors((prev) => {
+      if (!prev.skills) return prev;
+      const next = { ...prev };
+      delete next.skills;
+      return next;
+    });
   };
 
   const removeSkill = (skill) => {
@@ -65,8 +354,23 @@ const ApplicationDetails = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Hard guard against rapid repeat submit events (double click / Enter spam).
+    if (isSubmittingRef.current || isSubmitting) {
+      return;
+    }
+
+    const clientErrors = validateForm(formData, selectedSkills);
+    if (Object.keys(clientErrors).length > 0) {
+      setFieldErrors(clientErrors);
+      setSubmitError("Please complete all required fields correctly.");
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     setSubmitError(null);
+    setFieldErrors({});
     try {
       const payload = {
         firstName: formData.firstName,
@@ -97,11 +401,18 @@ const ApplicationDetails = () => {
         cv: "",
       });
       setSelectedSkills([]);
+      setFieldErrors({});
+      setEmailSuggestion(null);
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      setSubmitError(errorMessage(err));
+      const apiFieldErrors = parseApiValidationErrors(err.body);
+      if (Object.keys(apiFieldErrors).length > 0) {
+        setFieldErrors(apiFieldErrors);
+      }
+      setSubmitError(getSubmitErrorMessage(err));
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -168,6 +479,7 @@ const ApplicationDetails = () => {
       <div className="flex-1 flex justify-center px-2 pb-12">
         <form
           onSubmit={handleSubmit}
+          noValidate
           className="w-full md:max-w-xl lg:max-w-3xl p-4 md:px-6 md:py-4"
         >
           {/* First Name + Last Name */}
@@ -190,6 +502,9 @@ const ApplicationDetails = () => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
               </div>
+              {fieldErrors.firstName && (
+                <p className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -209,6 +524,9 @@ const ApplicationDetails = () => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
               </div>
+              {fieldErrors.lastName && (
+                <p className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</p>
+              )}
             </div>
           </div>
 
@@ -222,9 +540,18 @@ const ApplicationDetails = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="enteryouremail@gmail.com"
               className={inputBase}
             />
+            {fieldErrors.email && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+            )}
+            {emailSuggestion && !fieldErrors.email && (
+              <p className="mt-1 text-xs text-amber-700">
+                Did you mean {emailSuggestion}?
+              </p>
+            )}
           </div>
 
           {/* Phone Number */}
@@ -240,6 +567,9 @@ const ApplicationDetails = () => {
               placeholder=""
               className={inputBase}
             />
+            {fieldErrors.phone && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>
+            )}
           </div>
 
           {/* Location */}
@@ -255,6 +585,9 @@ const ApplicationDetails = () => {
               placeholder="Lagos"
               className={inputBase}
             />
+            {fieldErrors.location && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.location}</p>
+            )}
           </div>
 
           {/* LinkedIn */}
@@ -270,6 +603,9 @@ const ApplicationDetails = () => {
               placeholder="link"
               className={inputBase}
             />
+            {fieldErrors.linkedin && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.linkedin}</p>
+            )}
           </div>
 
           {/* Volunteer Skills */}
@@ -278,6 +614,7 @@ const ApplicationDetails = () => {
               Volunteer Skills
             </label>
             <div
+              ref={skillsToggleRef}
               className="border border-gray-300 rounded-lg px-4 py-3 cursor-pointer flex items-center justify-between flex-wrap gap-2"
               onClick={() => setSkillsOpen(!skillsOpen)}
             >
@@ -314,7 +651,15 @@ const ApplicationDetails = () => {
               />
             </div>
             {skillsOpen && (
-              <div className="absolute right-0 mt-1 w-[220px] md:w-[280px] border border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto z-20">
+              <div
+                ref={skillsListRef}
+                onScroll={(e) => {
+                  const el = e.target;
+                  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+                  setShowScrollHint(!atBottom);
+                }}
+                className="absolute right-0 mt-1 w-[220px] md:w-[280px] border border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto z-20"
+              >
                 {skillOptions.map((skill) => (
                   <button
                     key={skill}
@@ -338,7 +683,18 @@ const ApplicationDetails = () => {
                     {skill}
                   </button>
                 ))}
+
+                {skillsScrollable && showScrollHint && (
+                  <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 flex items-end justify-center">
+                    <div className="bg-gradient-to-t from-white to-transparent w-full h-8 flex items-end justify-center">
+                      <span className="text-xs text-gray-500 mb-1">Scroll for more</span>
+                    </div>
+                  </div>
+                )}
               </div>
+            )}
+            {fieldErrors.skills && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.skills}</p>
             )}
           </div>
 
@@ -348,13 +704,21 @@ const ApplicationDetails = () => {
               Availability (hours per week)
             </label>
             <input
-              type="text"
+              type="number"
               name="availability"
               value={formData.availability}
               onChange={handleChange}
-              placeholder="20 hrs"
+              min={1}
+              max={40}
+              step={1}
+              inputMode="numeric"
+              placeholder="20"
               className={inputBase}
             />
+            <p className="mt-1 text-xs text-gray-500">Enter whole hours from 1 to 40.</p>
+            {fieldErrors.availability && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.availability}</p>
+            )}
           </div>
 
           {/* Why do you want to volunteer? */}
@@ -370,6 +734,9 @@ const ApplicationDetails = () => {
               rows={1}
               className={`${inputBase} resize-y`}
             />
+            {fieldErrors.whyVolunteer && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.whyVolunteer}</p>
+            )}
           </div>
 
           {/* Relevant experience */}
@@ -385,6 +752,9 @@ const ApplicationDetails = () => {
               rows={3}
               className={`${inputBase} resize-y`}
             />
+            {fieldErrors.experience && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.experience}</p>
+            )}
           </div>
 
           {/* Upload CV */}
@@ -400,6 +770,9 @@ const ApplicationDetails = () => {
               placeholder="link"
               className={inputBase}
             />
+            {fieldErrors.cv && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.cv}</p>
+            )}
           </div>
 
           {/* Submit */}
